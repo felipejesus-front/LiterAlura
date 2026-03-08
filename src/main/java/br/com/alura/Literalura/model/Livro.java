@@ -14,7 +14,7 @@ public class Livro {
     private Integer id;
     @Column(unique = true)
     private String titulo;
-    @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "livros_autores",
             joinColumns = @JoinColumn(name = "livro_id"),

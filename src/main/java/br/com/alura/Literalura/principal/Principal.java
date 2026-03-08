@@ -7,26 +7,30 @@ package br.com.alura.Literalura.principal;
 
 import br.com.alura.Literalura.model.DadosLivro;
 import br.com.alura.Literalura.model.Livro;
+import br.com.alura.Literalura.model.Autor;
 import br.com.alura.Literalura.model.Resposta;
 import br.com.alura.Literalura.repository.LivroRepository;
+import br.com.alura.Literalura.repository.AutorRepository;
 import br.com.alura.Literalura.service.ConsumoApi;
 import br.com.alura.Literalura.service.ConverteDados;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Principal {
 
+    private final LivroRepository repositorio;
     private Scanner leitura = new Scanner(System.in);
     private ConsumoApi consumo = new ConsumoApi();
     private ConverteDados conversor = new ConverteDados();
     private final String ENDERECO = "https://gutendex.com/books";
-    private final String API_KEY = "&apikey=6585022c";
-    private LivroRepository repositorio;
+    private AutorRepository autorRepositorio;
 
 //    private List<Serie> series = new ArrayList<>();
 
-    public Principal(LivroRepository repositorio) {
+    public Principal(LivroRepository repositorio, AutorRepository autorRepositorio) {
         this.repositorio = repositorio;
+        this.autorRepositorio = autorRepositorio;
     }
 
     public void exibeMenu() {
@@ -34,11 +38,10 @@ public class Principal {
         while (opcao != 0) {
             var menu = """
                     1 - Buscar livros
-                    2 - -----
-                    3 - -----
-                    4 - -----
-                    5 - -----
-                    6 - -----
+                    2 - listar livros registrados (no banco)
+                    3 - listar autores registrados (no banco)
+                    4 - listar autores vivos em um determinado ano (no banco)
+                    5 - listar livros por idioma (no banco)
                     
                     0 - Sair
                     """;
@@ -52,19 +55,16 @@ public class Principal {
                     buscarLivroWeb();
                     break;
                 case 2:
-//                    buscarEpisodioPorSerie();
+                    listarLivrosRegistrados();
                     break;
                 case 3:
-//                    listarSeriesBuscadas();
+                    listarAutoresRegistrados();
                     break;
                 case 4:
-//                    buscarSeriePorTitulo();
+                    listarAutoresVivosEmAno();
                     break;
                 case 5:
-//                    buscarSeriePorAtor();
-                    break;
-                case 6:
-//                    buscarporCategoria();
+                    listarLivrosPorIdioma();
                     break;
                 case 0:
                     System.out.println("Saindo...");
@@ -104,11 +104,17 @@ public class Principal {
             if (repositorio.findByTituloContainingIgnoreCase(dadosLivro.titulo()).isEmpty()) {
                 try {
                     Livro livro = new Livro(dadosLivro);
+
+                    List<Autor> autoresProcessados = livro.getAutores().stream()
+                            .map(autor -> buscarOuCriarAutor(autor))
+                            .collect(Collectors.toList());
+
+                    livro.setAutores(autoresProcessados);
                     repositorio.save(livro);
                     livrosSalvos++;
-                    System.out.println("✓ Livro salvo: " + dadosLivro.titulo());
+                    System.out.println("Livro salvo: " + dadosLivro.titulo());
                 } catch (Exception e) {
-                    System.out.println("✗ Erro ao salvar " + dadosLivro.titulo() + ": " + e.getMessage());
+                    System.out.println("Erro ao salvar " + dadosLivro.titulo() + ": " + e.getMessage());
                 }
             } else {
                 livrosJaExistem++;
@@ -120,118 +126,88 @@ public class Principal {
         System.out.println("Livros já existentes: " + livrosJaExistem);
     }
 
+    private Autor buscarOuCriarAutor(Autor autor) {
+        var autorExistente = autorRepositorio.findByNome(autor.getName());
 
-//    private void buscarporCategoria() {
-//        System.out.println("Digite o nome da categoria para busca: ");
-//        var nomeCategoria = leitura.nextLine();
-//
-//        Categoria categoria = Categoria.fromPortugues(nomeCategoria);
-//
-//        List<Serie> seriesEncontradas = repositorio.findByGenero(categoria);
-//
-//        if (!seriesEncontradas.isEmpty()) {
-//            System.out.println("séries encontradas com a categoria: " + nomeCategoria);
-//            seriesEncontradas.forEach(serie -> {
-//                System.out.println(serie.getTitulo() + " - " + serie.getGenero());
-//            });
-//        } else {
-//            System.out.println("Nenhuma série encontrada com a categoria: " + nomeCategoria);
-//        }
-//    }
-//
-//    private void buscarSeriePorAtor() {
-//        System.out.println("Digite o nome do ator para busca: ");
-//        var nomeAtor = leitura.nextLine();
-//
-//        List<Serie> seriesEncontradas = repositorio.findByAtoresContainingIgnoreCase(nomeAtor);
-//
-//        if (!seriesEncontradas.isEmpty()) {
-//            System.out.println("séries encontradas com o ator: " + nomeAtor);
-//            seriesEncontradas.forEach(serie -> {
-//                System.out.println(serie.getTitulo() + " - " + serie.getAvaliacao());
-//            });
-//        } else {
-//            System.out.println("Nenhuma série encontrada com o ator: " + nomeAtor);
-//        }
-//    }
-//
-//    private void buscarSeriePorTitulo() {
-//        System.out.println("Digite o nome da série para busca: ");
-//        var nomeSerie = leitura.nextLine();
-//
-//        Optional<Serie> serieEncontrada = repositorio.findByTituloContainingIgnoreCase(nomeSerie);
-//
-//        if (serieEncontrada.isPresent()) {
-//            System.out.println(serieEncontrada.get());
-//        } else {
-//            System.out.println("Série não encontrada");
-//        }
-//
-//    }
-//
-//    private void buscarSerieWeb() {
-//        DadosSerie dados = getDadosSerie();
-//        Serie serie = new Serie(dados);
-////        Antiga implementação para salvar as séries buscadas em memória, agora as séries são salvas no banco de dados
-////        dadosSeries.add(dados);
-//        repositorio.save(serie);
-//        System.out.println(dados);
-//    }
-//
-//    private DadosSerie getDadosSerie() {
-//        System.out.println("Digite o nome da série para busca");
-//        var nomeSerie = leitura.nextLine();
-//        var json = consumo.obterDados(ENDERECO + nomeSerie.replace(" ", "+") + API_KEY);
-//        DadosSerie dados = conversor.obterDados(json, DadosSerie.class);
-//        return dados;
-//    }
-//
-//    private void buscarEpisodioPorSerie(){
-//
-//        listarSeriesBuscadas();
-//
-//        System.out.println("Digite o nome da série para buscar os episódios: ");
-//        var nomeSerie = leitura.nextLine();
-//
-//
-//        Optional<Serie> serie = repositorio.findByTituloContainingIgnoreCase(nomeSerie);
-//
-//        if(serie.isPresent()){
-//            var serieEncontrada = serie.get();
-//
-//            List<DadosTemporada> temporadas = new ArrayList<>();
-//
-//            for (int i = 1; i <= serieEncontrada.getTotalTemporadas(); i++) {
-//                var json = consumo.obterDados(ENDERECO + serieEncontrada.getTitulo().replace(" ", "+") + "&season=" + i + API_KEY);
-//                DadosTemporada dadosTemporada = conversor.obterDados(json, DadosTemporada.class);
-//                temporadas.add(dadosTemporada);
-//            }
-//            temporadas.forEach(System.out::println);
-//
-//            List<Episodio> episodios = temporadas
-//                    .stream()
-//                    .flatMap(d -> d.episodios().stream()
-//                            .map(e -> new Episodio(d.numero(), e)))
-//                    .collect(Collectors.toList());
-//
-//            serieEncontrada.setEpisodios(episodios);
-//            repositorio.save(serieEncontrada);
-//        } else {
-//            System.out.println("Série não encontrada");
-//        }
-//    }
-//    private void listarSeriesBuscadas() {
-//        series = repositorio.findAll();
-//
-//        if (series.isEmpty()) {
-//            System.out.println("Nenhuma série buscada");
-//            return;
-//        }
-//
-//        series.stream()
-//            .sorted(Comparator.comparing(Serie::getGenero))
-//            .forEach(System.out::println);
-//
-//        System.out.println(' ');
-//    }
+        if (autorExistente.isPresent()) {
+            return autorExistente.get();
+        } else {
+            return autorRepositorio.save(autor);
+        }
+    }
+
+    private void listarLivrosRegistrados() {
+        List<Livro> livros = repositorio.findAll();
+
+        if (livros.isEmpty()) {
+            System.out.println("\nNenhum livro registrado no banco de dados.");
+            return;
+        }
+
+        System.out.println("\n--- LIVROS REGISTRADOS ---");
+        livros.forEach(livro -> {
+            System.out.println("\n" + livro.getTitulo());
+            System.out.println("   Autores: " + livro.getAutores());
+            System.out.println("   Idiomas: " + livro.getLinguas());
+        });
+        System.out.println("\nTotal de livros: " + livros.size());
+    }
+
+    private void listarAutoresRegistrados() {
+        List<Autor> autores = autorRepositorio.findAll();
+
+        if (autores.isEmpty()) {
+            System.out.println("\nNenhum autor registrado no banco de dados.");
+            return;
+        }
+
+        System.out.println("\n--- AUTORES REGISTRADOS ---");
+        autores.forEach(autor -> {
+            System.out.println("\n " + autor.getName());
+            System.out.println("   Nascimento: " + autor.getNascimento());
+            System.out.println("   Morte: " + (autor.getMorte() != null ? autor.getMorte() : "Vivo(a)"));
+        });
+        System.out.println("\nTotal de autores: " + autores.size());
+    }
+
+    private void listarAutoresVivosEmAno() {
+        System.out.println("\nDigite o ano para buscar autores vivos: ");
+        Integer ano = leitura.nextInt();
+        leitura.nextLine();
+
+        List<Autor> autoresVivos = autorRepositorio.findAutoresVivosEmAno(ano);
+
+        if (autoresVivos.isEmpty()) {
+            System.out.println("\nNenhum autor vivo encontrado no ano " + ano);
+            return;
+        }
+
+        System.out.println("\n--- AUTORES VIVOS EM " + ano + " ---");
+        autoresVivos.forEach(autor -> {
+            System.out.println("\n " + autor.getName());
+            System.out.println("   Nascimento: " + autor.getNascimento());
+            System.out.println("   Morte: " + (autor.getMorte() != null ? autor.getMorte() : "Vivo(a)"));
+        });
+        System.out.println("\nTotal: " + autoresVivos.size());
+    }
+
+    private void listarLivrosPorIdioma() {
+        System.out.println("\nDigite o idioma para buscar (código como 'pt', 'en', 'es', etc): ");
+        String idioma = leitura.nextLine();
+
+        List<Livro> livrosPorIdioma = repositorio.findByIdioma(idioma);
+
+        if (livrosPorIdioma.isEmpty()) {
+            System.out.println("\nNenhum livro encontrado no idioma: " + idioma);
+            return;
+        }
+
+        System.out.println("\n--- LIVROS EM " + idioma.toUpperCase() + " ---");
+        livrosPorIdioma.forEach(livro -> {
+            System.out.println("\n " + livro.getTitulo());
+            System.out.println("   Autores: " + livro.getAutores());
+            System.out.println("   Idiomas: " + livro.getLinguas());
+        });
+        System.out.println("\nTotal de livros: " + livrosPorIdioma.size());
+    }
 }
